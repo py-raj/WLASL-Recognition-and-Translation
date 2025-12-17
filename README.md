@@ -4,10 +4,11 @@ This repository contains the "WLASL Recognition and Translation", employing the 
 
 
 >The project uses Cuda and pytorch, hence a system with NVIDIA graphics is required. Also, to run the system a minimum of 4-5 Gb of dedicated GPU Memory is needed.
+>
 
-### File Structure
+## File Structure
 -----------------
-
+```text
 WLASL-Recognition-and-Translation/
 ├── README.md
 └── WLASL/
@@ -81,7 +82,7 @@ WLASL-Recognition-and-Translation/
             ├── flow_imagenet.pt
             ├── rgb_charades.pt
             └── rgb_imagenet.pt
-
+```
 
 ### Download Dataset
 -----------------
