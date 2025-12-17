@@ -5,6 +5,83 @@ This repository contains the "WLASL Recognition and Translation", employing the 
 
 >The project uses Cuda and pytorch, hence a system with NVIDIA graphics is required. Also, to run the system a minimum of 4-5 Gb of dedicated GPU Memory is needed.
 
+### File Structure
+-----------------
+
+WLASL-Recognition-and-Translation/
+├── README.md
+└── WLASL/
+    └── I3D/
+        ├── __pycache__/
+        │   ├── language.cpython-39.pyc
+        │   ├── pytorch_i3d.cpython-39.pyc
+        │   └── videotransforms.cpython-39.pyc
+        ├── .gitattributes
+        ├── archived/
+        │   ├── asl100/
+        │   │   ├── FINAL_nslt_100_iters=896_top1=65.89_top5=84.11_top10=89.92.ini
+        │   │   └── FINAL_nslt_100_iters=896_top1=65.89_top5=84.11_top10=89.92.pt
+        │   ├── asl1000/
+        │   │   ├── FINAL_nslt_1000_iters=5104_top1=47.33_top5=76.44_top10=84.33.ini
+        │   │   └── FINAL_nslt_1000_iters=5104_top1=47.33_top5=76.44_top10=84.33.pt
+        │   ├── asl2000/
+        │   │   ├── FINAL_nslt_2000_iters=5104_top1=32.48_top5=57.31_top10=66.31.ini
+        │   │   └── FINAL_nslt_2000_iters=5104_top1=32.48_top5=57.31_top10=66.31.pt
+        │   └── asl300/
+        │       ├── FINAL_nslt_300_iters=2997_top1=56.14_top5=79.94_top10=86.98.ini
+        │       └── FINAL_nslt_300_iters=2997_top1=56.14_top5=79.94_top10=86.98.pt
+        ├── configfiles/
+        │   ├── asl100.ini
+        │   ├── asl1000.ini
+        │   ├── asl2000.ini
+        │   └── asl300.ini
+        ├── configs.py
+        ├── cpu-based-interface.py
+        ├── cpu-based-interface2.0.py
+        ├── cpu-based-reuirements.txt
+        ├── cpu-based-run1.py
+        ├── datasets/
+        │   ├── __pycache__/
+        │   │   ├── ms_wlasl_dataset.cpython-37.pyc
+        │   │   ├── msasl_dataset.cpython-37.pyc
+        │   │   ├── nslt_dataset_all.cpython-36.pyc
+        │   │   ├── nslt_dataset_all.cpython-37.pyc
+        │   │   ├── nslt_dataset_all.cpython-39.pyc
+        │   │   ├── nslt_dataset.cpython-37.pyc
+        │   │   └── siamese_dataset_train.cpython-37.pyc
+        │   ├── nslt_dataset_all.py
+        │   └── nslt_dataset.py
+        ├── inference_i3d.py
+        ├── json_extraction_N.py
+        ├── language.py
+        ├── models/
+        │   ├── __pycache__/
+        │   │   └── pytorch_i3d.cpython-37.pyc
+        │   └── layers/
+        │       └── __pycache__/
+        │           └── SelfAttention.cpython-37.pyc
+        ├── preprocess/
+        │   ├── nslt_100.json
+        │   ├── nslt_1000.json
+        │   ├── nslt_2000.json
+        │   ├── nslt_300.json
+        │   ├── wlasl_2000_list.txt
+        │   └── wlasl_class_list.txt
+        ├── pytorch_i3d.py
+        ├── requirements.txt
+        ├── run.py
+        ├── sentence_builder.py
+        ├── test_i3d.py
+        ├── test.py
+        ├── train_i3d.py
+        ├── videotransforms.py
+        ├── webcam_interface.py
+        └── weights/
+            ├── flow_charades.pt
+            ├── flow_imagenet.pt
+            ├── rgb_charades.pt
+            └── rgb_imagenet.pt
+
 
 ### Download Dataset
 -----------------
