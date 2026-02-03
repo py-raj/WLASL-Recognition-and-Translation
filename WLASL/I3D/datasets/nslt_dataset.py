@@ -26,11 +26,13 @@ def video_to_tensor(pic):
 def load_rgb_frames(image_dir, vid, start, num):
     frames = []
     for i in range(start, start + num):
-        try:
-            img = cv2.imread(os.path.join(image_dir, vid, "image_" + str(i).zfill(5) + '.jpg'))[:, :, [2, 1, 0]]
-        except:
-            print(os.path.join(image_dir, vid, str(i).zfill(6) + '.jpg'))
-        w, h, c = img.shape
+        img_path = os.path.join(image_dir, vid, "image_" + str(i).zfill(5) + '.jpg')
+        img = cv2.imread(img_path)
+        if img is None:
+            print(img_path)
+            continue
+        img = img[:, :, [2, 1, 0]]
+        h, w, c = img.shape
         if w < 226 or h < 226:
             d = 226. - min(w, h)
             sc = 1 + d / min(w, h)
@@ -50,10 +52,13 @@ def load_rgb_frames_from_video(vid_root, vid, start, num, resize=(256, 256)):
     total_frames = vidcap.get(cv2.CAP_PROP_FRAME_COUNT)
 
     vidcap.set(cv2.CAP_PROP_POS_FRAMES, start)
-    for offset in range(min(num, int(total_frames - start))):
+    available_frames = max(0, int(total_frames - start))
+    for offset in range(min(num, available_frames)):
         success, img = vidcap.read()
+        if not success or img is None:
+            break
 
-        w, h, c = img.shape
+        h, w, c = img.shape
         if w < 226 or h < 226:
             d = 226. - min(w, h)
             sc = 1 + d / min(w, h)
@@ -66,6 +71,7 @@ def load_rgb_frames_from_video(vid_root, vid, start, num, resize=(256, 256)):
 
         frames.append(img)
 
+    vidcap.release()
     return np.asarray(frames, dtype=np.float32)
 
 
@@ -238,4 +244,3 @@ class NSLT(data_utl.Dataset):
         label = np.tile(label, (total_frames, 1)).transpose((1, 0))
 
         return padded_imgs, label
-
