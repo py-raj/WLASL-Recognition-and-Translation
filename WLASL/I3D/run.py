@@ -32,6 +32,8 @@ import pickle
 
 load_dotenv("posts/nlp/.env", override=True)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
@@ -70,9 +72,9 @@ def load_rgb_frames_from_video():
         
         if ret == True:
             
-            w, h, c = frame1.shape
-            sc = 224 / w
-            sx = 224 / h
+            h, w, c = frame1.shape
+            sc = 224 / h
+            sx = 224 / w
             frame = cv2.resize(frame1, dsize=(0, 0), fx=sx, fy=sc)
             frame1 = cv2.resize(frame1, dsize = (1280,720))
     
@@ -150,9 +152,10 @@ def load_model(weights, num_classes):
     i3d = InceptionI3d(400, in_channels=3)
 
     i3d.replace_logits(num_classes)
-    i3d.load_state_dict(torch.load(weights))  # nslt_2000_000700.pt nslt_1000_010800 nslt_300_005100.pt(best_results)  nslt_300_005500.pt(results_reported) nslt_2000_011400
-    i3d.cuda()
-    i3d = nn.DataParallel(i3d)
+    i3d.load_state_dict(torch.load(weights, map_location=device))  # nslt_2000_000700.pt nslt_1000_010800 nslt_300_005100.pt(best_results)  nslt_300_005500.pt(results_reported) nslt_2000_011400
+    i3d = i3d.to(device)
+    if torch.cuda.is_available():
+        i3d = nn.DataParallel(i3d)
     i3d.eval()
     
     #Loading the KeytoText model
@@ -183,10 +186,11 @@ def run_on_tensor(ip_tensor):
     ip_tensor = ip_tensor[None, :]
     
     t = ip_tensor.shape[2] 
-    ip_tensor.cuda()
-    per_frame_logits = i3d(ip_tensor)
+    ip_tensor = ip_tensor.to(device)
+    with torch.no_grad():
+        per_frame_logits = i3d(ip_tensor)
 
-    predictions = F.upsample(per_frame_logits, t, mode='linear')
+    predictions = F.interpolate(per_frame_logits, t, mode='linear', align_corners=False)
 
     predictions = predictions.transpose(2, 1)
     out_labels = np.argsort(predictions.cpu().detach().numpy()[0])

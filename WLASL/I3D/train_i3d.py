@@ -22,6 +22,8 @@ from datasets.nslt_dataset import NSLT as Dataset
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-mode', type=str, help='rgb or flow')
 parser.add_argument('-save_model', type=str)
@@ -64,20 +66,21 @@ def run(configs,
     # setup the model
     if mode == 'flow':
         i3d = InceptionI3d(400, in_channels=2)
-        i3d.load_state_dict(torch.load('weights/flow_imagenet.pt'))
+        i3d.load_state_dict(torch.load('weights/flow_imagenet.pt', map_location=device))
     else:
         i3d = InceptionI3d(400, in_channels=3)
-        i3d.load_state_dict(torch.load('weights/rgb_imagenet.pt'))
+        i3d.load_state_dict(torch.load('weights/rgb_imagenet.pt', map_location=device))
 
     num_classes = dataset.num_classes
     i3d.replace_logits(num_classes)
 
     if weights:
         print('loading weights {}'.format(weights))
-        i3d.load_state_dict(torch.load(weights))
+        i3d.load_state_dict(torch.load(weights, map_location=device))
 
-    i3d.cuda()
-    i3d = nn.DataParallel(i3d)
+    i3d = i3d.to(device)
+    if torch.cuda.is_available():
+        i3d = nn.DataParallel(i3d)
 
     lr = configs.init_lr
     weight_decay = configs.adam_weight_decay
@@ -110,7 +113,7 @@ def run(configs,
             num_iter = 0
             optimizer.zero_grad()
 
-            confusion_matrix = np.zeros((num_classes, num_classes), dtype=np.int)
+            confusion_matrix = np.zeros((num_classes, num_classes), dtype=int)
             # Iterate over data.
             for data in dataloaders[phase]:
                 num_iter += 1
@@ -122,13 +125,13 @@ def run(configs,
                 inputs, labels, vid = data
 
                 # wrap them in Variable
-                inputs = inputs.cuda()
+                inputs = inputs.to(device)
                 t = inputs.size(2)
-                labels = labels.cuda()
+                labels = labels.to(device)
 
                 per_frame_logits = i3d(inputs, pretrained=False)
                 # upsample to input size
-                per_frame_logits = F.upsample(per_frame_logits, t, mode='linear')
+                per_frame_logits = F.interpolate(per_frame_logits, t, mode='linear', align_corners=False)
 
                 # compute localization loss
                 loc_loss = F.binary_cross_entropy_with_logits(per_frame_logits, labels)
@@ -158,7 +161,8 @@ def run(configs,
                     optimizer.zero_grad()
                     # lr_sched.step()
                     if steps % 10 == 0:
-                        acc = float(np.trace(confusion_matrix)) / np.sum(confusion_matrix)
+                        total = np.sum(confusion_matrix)
+                        acc = float(np.trace(confusion_matrix)) / total if total else 0.0
                         print(
                             'Epoch {} {} Loc Loss: {:.4f} Cls Loss: {:.4f} Tot Loss: {:.4f} Accu :{:.4f}'.format(epoch,
                                                                                                                  phase,
@@ -168,23 +172,26 @@ def run(configs,
                                                                                                                  acc))
                         tot_loss = tot_loc_loss = tot_cls_loss = 0.
             if phase == 'test':
-                val_score = float(np.trace(confusion_matrix)) / np.sum(confusion_matrix)
+                total = np.sum(confusion_matrix)
+                val_score = float(np.trace(confusion_matrix)) / total if total else 0.0
                 if val_score > best_val_score or epoch % 2 == 0:
                     best_val_score = val_score
                     model_name = save_model + "nslt_" + str(num_classes) + "_" + str(steps).zfill(
                                    6) + '_%3f.pt' % val_score
 
-                    torch.save(i3d.module.state_dict(), model_name)
+                    model_state = i3d.module.state_dict() if isinstance(i3d, nn.DataParallel) else i3d.state_dict()
+                    torch.save(model_state, model_name)
                     print(model_name)
 
                 print('VALIDATION: {} Loc Loss: {:.4f} Cls Loss: {:.4f} Tot Loss: {:.4f} Accu :{:.4f}'.format(phase,
-                                                                                                              tot_loc_loss / num_iter,
-                                                                                                              tot_cls_loss / num_iter,
-                                                                                                              (tot_loss * num_steps_per_update) / num_iter,
+                                                                                                              tot_loc_loss / num_iter if num_iter else 0.0,
+                                                                                                              tot_cls_loss / num_iter if num_iter else 0.0,
+                                                                                                              (tot_loss * num_steps_per_update) / num_iter if num_iter else 0.0,
                                                                                                               val_score
                                                                                                               ))
 
-                scheduler.step(tot_loss * num_steps_per_update / num_iter)
+                if num_iter:
+                    scheduler.step(tot_loss * num_steps_per_update / num_iter)
 
 
 if __name__ == '__main__':
